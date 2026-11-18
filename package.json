@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "express": "^4.21.2",
+    "html2canvas": "^1.4.1",
     "multer": "^2.5.0",
     "qrcode": "^1.5.4",
     "xlsx": "^0.18.5"

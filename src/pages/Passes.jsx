@@ -30,9 +30,20 @@ export default function Passes() {
     setSelected(allChecked ? new Set() : new Set(employees.map((e) => e.id)));
   };
 
-  const print = () => {
+  const print = (mode = 'bulk') => {
     if (selected.size === 0) return;
-    navigate(`/print?ids=${[...selected].join(',')}`);
+    navigate(`/print?ids=${[...selected].join(',')}&mode=${mode}`);
+  };
+
+  const downloadTemplate = async (employee) => {
+    const cardEl = document.getElementById(`pass-card-${employee.id}`);
+    if (!cardEl) return;
+    const html2canvas = (await import('html2canvas')).default;
+    const canvas = await html2canvas(cardEl, { scale: 3, backgroundColor: '#fff' });
+    const link = document.createElement('a');
+    link.download = `${employee.employeeCode}_pass.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   };
 
   return (
@@ -48,8 +59,11 @@ export default function Passes() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <button className="btn btn-primary" disabled={selected.size === 0} onClick={print}>
-          Print selected ({selected.size})
+        <button className="btn btn-primary" disabled={selected.size === 0} onClick={() => print('bulk')}>
+          Print bulk ({selected.size})
+        </button>
+        <button className="btn btn-outline" disabled={selected.size === 0} onClick={() => print('single')}>
+          Print single
         </button>
         <button className="btn" onClick={toggleAll}>{allChecked ? 'Clear' : 'Select all'}</button>
       </div>
@@ -70,8 +84,13 @@ export default function Passes() {
                 />
                 Select
               </label>
-              <PassCard employee={e} />
+              <div id={`pass-card-${e.id}`}>
+                <PassCard employee={e} />
+              </div>
               <div className="muted small center">{e.qrToken}</div>
+              <button className="btn btn-sm btn-outline mt-1" onClick={() => downloadTemplate(e)}>
+                Download PNG
+              </button>
             </div>
           ))}
         </div>
