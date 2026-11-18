@@ -72,6 +72,9 @@ export default function Employees() {
       {importResult && (
         <div className="alert alert-info">
           <strong>Import complete:</strong> {importResult.inserted.length} imported, {importResult.errors.length} errors.
+          {importResult.savedFile && (
+            <div className="muted small mt-1">File saved: <code>{importResult.savedFile}</code></div>
+          )}
           {importResult.errors.length > 0 && (
             <details className="mt-2">
               <summary>Errors</summary>

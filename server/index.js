@@ -16,14 +16,23 @@ app.use(express.json());
 
 // ---- Photo uploads ----
 const uploadDir = path.join(__dirname, 'uploads');
-fs.mkdirSync(uploadDir, { recursive: true });
+const photoDir = path.join(uploadDir, 'photos');
+const excelDir = path.join(uploadDir, 'excel');
+fs.mkdirSync(photoDir, { recursive: true });
+fs.mkdirSync(excelDir, { recursive: true });
 
 const upload = multer({
   storage: multer.diskStorage({
-    destination: uploadDir,
-    filename: (_req, file, cb) => {
+    destination: (req, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase();
-      cb(null, `${crypto.randomUUID()}${ext}`);
+      const isImage = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
+      cb(null, isImage ? photoDir : excelDir);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_');
+      cb(null, `${timestamp}_${baseName}${ext}`);
     },
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -62,7 +71,12 @@ const rowToEmployee = async (row, baseUrl) => ({
 const baseUrl = (req) => `${req.protocol}://${req.get('host')}`;
 
 const findEmployee = db.prepare('SELECT * FROM employees WHERE id = ?');
-const deletePhoto = (p) => { if (p) fs.unlink(path.join(uploadDir, path.basename(p)), () => {}); };
+const deletePhoto = (p) => {
+  if (p) {
+    const fullPath = path.join(uploadDir, p.replace('/uploads/', ''));
+    fs.unlink(fullPath, () => {});
+  }
+};
 
 // ---- Employees ----
 app.get('/api/employees', async (req, res) => {
@@ -82,7 +96,7 @@ app.post('/api/employees', upload.single('photograph'), async (req, res) => {
     return res.status(400).json({ error: 'employeeCode, fullName, mobile and designation are required' });
   }
   try {
-    const photoPath = req.file ? `/uploads/${req.file.filename}` : null;
+    const photoPath = req.file ? `/uploads/photos/${req.file.filename}` : null;
     const result = db.prepare(`
       INSERT INTO employees (employee_code, full_name, mobile, designation, email, company, photo_path, qr_token, is_active)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -106,7 +120,7 @@ app.put('/api/employees/:id', upload.single('photograph'), async (req, res) => {
   let photoPath = existing.photo_path;
   if (req.file) {
     deletePhoto(existing.photo_path);
-    photoPath = `/uploads/${req.file.filename}`;
+    photoPath = `/uploads/photos/${req.file.filename}`;
   }
 
   try {
@@ -172,9 +186,11 @@ app.post('/api/employees/import', upload.single('file'), (req, res) => {
       }
     });
 
-    fs.unlink(req.file.path, () => {});
-    res.json({ inserted, errors, total: rows.length });
+    // Excel file is saved in server/uploads/excel/ with timestamp
+    const savedPath = req.file.path.replace(/\\/g, '/').split('/uploads/')[1];
+    res.json({ inserted, errors, total: rows.length, savedFile: savedPath });
   } catch (e) {
+    // Delete only on error
     if (req.file) fs.unlink(req.file.path, () => {});
     res.status(400).json({ error: e.message });
   }
