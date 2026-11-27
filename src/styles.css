@@ -591,13 +591,15 @@ th input[type="checkbox"], td input[type="checkbox"] { cursor: pointer; }
     break-after: page;
   }
 
-  /* Bulk mode: single row layout */
+  /* Bulk mode: wrapped grid, cards sized to fit page */
   .print-grid {
     display: flex;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
+    flex-wrap: wrap;
     gap: 4mm;
-    overflow-x: auto;
+  }
+  .print-grid .pass-card {
+    flex: 0 0 auto;
+    margin: 0;
   }
 
   /* Scale for print */
