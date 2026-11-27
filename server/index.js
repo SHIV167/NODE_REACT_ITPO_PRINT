@@ -69,7 +69,8 @@ const rowToEmployee = async (row, baseUrl) => ({
   qrDataUrl: await QRCode.toDataURL(`${baseUrl}/verify/${row.qr_token}`, { margin: 1, width: 220 }),
 });
 
-const baseUrl = (req) => `${req.protocol}://${req.get('host')}`;
+const baseUrl = (req) =>
+  process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
 
 const deletePhoto = (p) => {
   if (p) {
