@@ -7,7 +7,7 @@ export default function PassCard({ employee }) {
           <div className="pass-45th">45TH</div>
           <div className="pass-iitf-logo">
             <div className="iitf-globe">
-              <div className="iitf-text">iitf</div>
+              <div className="iitf-text">IITF</div>
             </div>
           </div>
         </div>

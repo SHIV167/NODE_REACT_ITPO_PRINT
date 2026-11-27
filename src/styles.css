@@ -315,10 +315,10 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
 
 .iitf-text {
   color: #fff;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: bold;
   letter-spacing: 0.5px;
-  text-transform: lowercase;
+  text-transform: uppercase;
 }
 
 .pass-top-right {
