@@ -15,7 +15,7 @@ Pass printing and QR verification system for 45th IITF (India International Trad
 
 - **Frontend**: React 18 + Vite + react-router-dom
 - **Backend**: Express.js
-- **Database**: SQLite (via Node's built-in `node:sqlite`)
+- **Database**: PostgreSQL (via `pg` npm package)
 - **QR Generation**: `qrcode` npm package
 - **Excel Parsing**: `xlsx` npm package
 - **File Uploads**: `multer` v2
@@ -25,6 +25,24 @@ Pass printing and QR verification system for 45th IITF (India International Trad
 ```bash
 npm install
 ```
+
+## Database Setup
+
+1. Install PostgreSQL on your system or use a cloud provider (Supabase, Neon, AWS RDS, etc.)
+2. Create a database:
+   ```sql
+   CREATE DATABASE printpass;
+   ```
+3. Copy `.env.example` to `.env` and configure your connection:
+   ```bash
+   cp .env.example .env
+   ```
+4. Edit `.env` with your PostgreSQL connection string:
+   ```
+   DATABASE_URL=postgresql://username:password@localhost:5432/printpass
+   ```
+
+Tables are created automatically on first run (employees, verification_logs with indexes).
 
 ## Running
 
@@ -43,13 +61,30 @@ The app will be available at:
 - Dev: http://localhost:5173 (Vite proxy to API at :3001)
 - Prod: http://localhost:3001
 
-## Database
+## Database Schema
 
-SQLite database file: `server/printpass.db` (auto-created on first run)
+**employees**:
+- id (SERIAL PRIMARY KEY)
+- employee_code (TEXT UNIQUE)
+- full_name (TEXT)
+- mobile (TEXT)
+- designation (TEXT)
+- email (TEXT)
+- company (TEXT)
+- photo_path (TEXT)
+- qr_token (TEXT UNIQUE)
+- is_active (BOOLEAN, DEFAULT true)
+- created_at (TIMESTAMP WITH TIME ZONE, DEFAULT NOW())
 
-Schema:
-- `employees`: id, employee_code, full_name, mobile, designation, email, company, photo_path, qr_token, is_active, created_at
-- `verification_logs`: id, employee_id, qr_token, was_valid, ip_address, verified_at
+**verification_logs**:
+- id (SERIAL PRIMARY KEY)
+- employee_id (INTEGER REFERENCES employees(id) ON DELETE SET NULL)
+- qr_token (TEXT)
+- was_valid (BOOLEAN)
+- ip_address (TEXT)
+- verified_at (TIMESTAMP WITH TIME ZONE, DEFAULT NOW())
+
+Indexes on: employee_code, qr_token, verified_at (DESC)
 
 ## API Endpoints
 
@@ -65,12 +100,19 @@ Schema:
 ## Pass Design
 
 Pass cards match the 45th IITF template:
-- Header: IITF logo, "VIKAS aur VIRASAT Development & Heritage", dates (13-27 November 2026), venue (Bharat Mandapam, New Delhi)
+- Header: ITF circle logo, ITPO logo, "45TH ITF", "VIKAS aur VIRASAT Development & Heritage", gradient dates band (13-27 November 2026), venue (Bharat Mandapam, New Delhi)
 - Partner States: BIHAR, MAHARASHTRA, RAJASTHAN & UTTAR PRADESH
 - Focus States: ASSAM, DELHI, JHARKHAND & WEST BENGAL
-- Body: Photo, name, employee ID, designation, company, email, mobile, QR code
-- Footer: Gold band with "Validity: 13-11-2026 to 28-11-2026" and "ON DUTY" badge
+- Body: Photo, name, designation, company, email, mobile, QR code with token
+- Footer: Gold gradient band with "Validity: 13-11-2026 to 28-11-2026" and "ON DUTY" badge
 - Lanyard slot at top
+
+## Print Options
+
+- **Bulk print**: Multi-card grid (2 per page) for paper printing
+- **Single print**: 1-up layout (one card per page) for PVC card printers
+- **Download PNG**: Export card as high-res PNG for card printer software
+- **Page size**: Select A4 or Letter in print dialog
 
 ## License
 

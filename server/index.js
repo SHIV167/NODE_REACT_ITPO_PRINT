@@ -6,7 +6,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import xlsx from 'xlsx';
 import { fileURLToPath } from 'node:url';
-import { db } from './db.js';
+import { pool, initDb } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
@@ -63,14 +63,13 @@ const rowToEmployee = async (row, baseUrl) => ({
   company: row.company,
   photoPath: row.photo_path,
   qrToken: row.qr_token,
-  isActive: !!row.is_active,
+  isActive: row.is_active,
   createdAt: row.created_at,
   qrDataUrl: await QRCode.toDataURL(`${baseUrl}/verify/${row.qr_token}`, { margin: 1, width: 220 }),
 });
 
 const baseUrl = (req) => `${req.protocol}://${req.get('host')}`;
 
-const findEmployee = db.prepare('SELECT * FROM employees WHERE id = ?');
 const deletePhoto = (p) => {
   if (p) {
     const fullPath = path.join(uploadDir, p.replace('/uploads/', ''));
@@ -80,71 +79,119 @@ const deletePhoto = (p) => {
 
 // ---- Employees ----
 app.get('/api/employees', async (req, res) => {
-  const { search = '' } = req.query;
-  const like = `%${search}%`;
-  const rows = db.prepare(`
-    SELECT * FROM employees
-    WHERE (? = '' OR full_name LIKE ? OR employee_code LIKE ? OR designation LIKE ?)
-    ORDER BY full_name
-  `).all(search, like, like, like);
-  res.json(await Promise.all(rows.map((r) => rowToEmployee(r, baseUrl(req)))));
+  try {
+    const { search = '' } = req.query;
+    const like = `%${search}%`;
+    const result = await pool.query(`
+      SELECT * FROM employees
+      WHERE ($1 = '' OR full_name ILIKE $2 OR employee_code ILIKE $2 OR designation ILIKE $2)
+      ORDER BY full_name
+    `, [search, like]);
+    const rows = await Promise.all(result.rows.map((r) => rowToEmployee(r, baseUrl(req))));
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post('/api/employees', upload.single('photograph'), async (req, res) => {
-  const { employeeCode, fullName, mobile, designation, email, company, isActive } = req.body;
-  if (!employeeCode || !fullName || !mobile || !designation) {
-    return res.status(400).json({ error: 'employeeCode, fullName, mobile and designation are required' });
-  }
   try {
+    const { employeeCode, fullName, mobile, designation, email, company, isActive } = req.body;
+    if (!employeeCode || !fullName || !mobile || !designation) {
+      return res.status(400).json({ error: 'employeeCode, fullName, mobile and designation are required' });
+    }
     const photoPath = req.file ? `/uploads/photos/${req.file.filename}` : null;
-    const result = db.prepare(`
+    const result = await pool.query(`
       INSERT INTO employees (employee_code, full_name, mobile, designation, email, company, photo_path, qr_token, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(employeeCode, fullName, mobile, designation, email || null, company || null, photoPath, newToken(), isActive === undefined || isActive === 'true' || isActive === true ? 1 : 0);
-    res.status(201).json(await rowToEmployee(findEmployee.get(result.lastInsertRowid), baseUrl(req)));
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+    `, [employeeCode, fullName, mobile, designation, email || null, company || null, photoPath, newToken(), isActive === undefined || isActive === 'true' || isActive === true]);
+    res.status(201).json(await rowToEmployee(result.rows[0], baseUrl(req)));
   } catch (e) {
-    if (req.file) fs.unlink(path.join(uploadDir, req.file.filename), () => {});
-    res.status(409).json({ error: e.message.includes('UNIQUE') ? 'Employee ID already exists' : e.message });
+    if (req.file) fs.unlink(path.join(photoDir, req.file.filename), () => {});
+    res.status(409).json({ error: e.message.includes('unique') ? 'Employee ID already exists' : e.message });
   }
 });
 
 app.put('/api/employees/:id', upload.single('photograph'), async (req, res) => {
-  const existing = findEmployee.get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Not found' });
-
-  const { employeeCode, fullName, mobile, designation, email, company, isActive } = req.body;
-  if (!employeeCode || !fullName || !mobile || !designation) {
-    return res.status(400).json({ error: 'employeeCode, fullName, mobile and designation are required' });
-  }
-
-  let photoPath = existing.photo_path;
-  if (req.file) {
-    deletePhoto(existing.photo_path);
-    photoPath = `/uploads/photos/${req.file.filename}`;
-  }
-
   try {
-    db.prepare(`
-      UPDATE employees SET employee_code=?, full_name=?, mobile=?, designation=?, email=?, company=?, photo_path=?, is_active=?
-      WHERE id=?
-    `).run(employeeCode, fullName, mobile, designation, email || null, company || null, photoPath,
-      isActive === 'true' || isActive === true || isActive === '1' || isActive === 1 ? 1 : 0, req.params.id);
-    res.json(await rowToEmployee(findEmployee.get(req.params.id), baseUrl(req)));
+    const existing = await pool.query('SELECT * FROM employees WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+
+    const { employeeCode, fullName, mobile, designation, email, company, isActive } = req.body;
+    if (!employeeCode || !fullName || !mobile || !designation) {
+      return res.status(400).json({ error: 'employeeCode, fullName, mobile and designation are required' });
+    }
+
+    let photoPath = existing.rows[0].photo_path;
+    if (req.file) {
+      deletePhoto(existing.rows[0].photo_path);
+      photoPath = `/uploads/photos/${req.file.filename}`;
+    }
+
+    const result = await pool.query(`
+      UPDATE employees SET employee_code=$1, full_name=$2, mobile=$3, designation=$4, email=$5, company=$6, photo_path=$7, is_active=$8
+      WHERE id=$9
+      RETURNING *
+    `, [employeeCode, fullName, mobile, designation, email || null, company || null, photoPath,
+      isActive === 'true' || isActive === true || isActive === '1' || isActive === 1, req.params.id]);
+    res.json(await rowToEmployee(result.rows[0], baseUrl(req)));
   } catch (e) {
-    res.status(409).json({ error: e.message.includes('UNIQUE') ? 'Employee ID already exists' : e.message });
+    res.status(409).json({ error: e.message.includes('unique') ? 'Employee ID already exists' : e.message });
   }
 });
 
-app.delete('/api/employees/:id', (req, res) => {
-  const existing = findEmployee.get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Not found' });
-  deletePhoto(existing.photo_path);
-  db.prepare('DELETE FROM employees WHERE id = ?').run(req.params.id);
-  res.json({ ok: true });
+app.delete('/api/employees/:id', async (req, res) => {
+  try {
+    const existing = await pool.query('SELECT * FROM employees WHERE id = $1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    deletePhoto(existing.rows[0].photo_path);
+    await pool.query('DELETE FROM employees WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ---- Dashboard ----
+app.get('/api/dashboard', async (req, res) => {
+  try {
+    const employeeCount = (await pool.query('SELECT COUNT(*) AS n FROM employees')).rows[0].n;
+    const verificationCount = (await pool.query('SELECT COUNT(*) AS n FROM verification_logs')).rows[0].n;
+    const recent = (await pool.query(`
+      SELECT l.*, e.full_name FROM verification_logs l
+      LEFT JOIN employees e ON e.id = l.employee_id
+      ORDER BY l.verified_at DESC LIMIT 10
+    `)).rows;
+    res.json({ employeeCount, verificationCount, recent });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ---- Verify (QR scan landing) ----
+app.get('/api/verify/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const result = await pool.query('SELECT * FROM employees WHERE qr_token = $1', [token]);
+    const employee = result.rows[0];
+    const wasValid = !!employee && employee.is_active;
+
+    await pool.query(`
+      INSERT INTO verification_logs (employee_id, qr_token, was_valid, ip_address)
+      VALUES ($1, $2, $3, $4)
+    `, [employee?.id || null, token, wasValid, req.ip]);
+
+    res.json(employee
+      ? { valid: wasValid, token, employee: await rowToEmployee(employee, baseUrl(req)) }
+      : { valid: false, token, employee: null });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ---- Excel import ----
-app.post('/api/employees/import', upload.single('file'), (req, res) => {
+app.post('/api/employees/import', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
   try {
@@ -156,7 +203,7 @@ app.post('/api/employees/import', upload.single('file'), (req, res) => {
     const inserted = [];
     const errors = [];
 
-    rows.forEach((row, idx) => {
+    for (const [idx, row] of rows.entries()) {
       try {
         const name = row['PERSON NAME']?.trim();
         const designation = row['DESIGNATION']?.trim();
@@ -168,60 +215,30 @@ app.post('/api/employees/import', upload.single('file'), (req, res) => {
 
         if (!name || !designation || !mobile) {
           errors.push({ row: idx + 1, reason: 'Missing name, designation or mobile' });
-          return;
+          continue;
         }
 
         const suffix = Math.floor(Math.random() * 9000) + 1000;
         const employeeCode = `${name.replace(/\s+/g, '').toUpperCase().slice(0, 6)}${suffix}`;
         const fullMobile = `${countryCode}${mobile}`;
 
-        db.prepare(`
+        await pool.query(`
           INSERT INTO employees (employee_code, full_name, mobile, designation, email, company, qr_token, is_active)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-        `).run(employeeCode, name, fullMobile, designation, email, company, newToken());
+          VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+        `, [employeeCode, name, fullMobile, designation, email, company, newToken()]);
 
         inserted.push({ row: idx + 1, name, employeeCode });
       } catch (e) {
         errors.push({ row: idx + 1, reason: e.message });
       }
-    });
+    }
 
-    // Excel file is saved in server/uploads/excel/ with timestamp
     const savedPath = req.file.path.replace(/\\/g, '/').split('/uploads/')[1];
     res.json({ inserted, errors, total: rows.length, savedFile: savedPath });
   } catch (e) {
-    // Delete only on error
     if (req.file) fs.unlink(req.file.path, () => {});
     res.status(400).json({ error: e.message });
   }
-});
-
-// ---- Dashboard ----
-app.get('/api/dashboard', (req, res) => {
-  const employeeCount = db.prepare('SELECT COUNT(*) AS n FROM employees').get().n;
-  const verificationCount = db.prepare('SELECT COUNT(*) AS n FROM verification_logs').get().n;
-  const recent = db.prepare(`
-    SELECT l.*, e.full_name FROM verification_logs l
-    LEFT JOIN employees e ON e.id = l.employee_id
-    ORDER BY l.verified_at DESC LIMIT 10
-  `).all();
-  res.json({ employeeCount, verificationCount, recent });
-});
-
-// ---- Verify (QR scan landing) ----
-app.get('/api/verify/:token', async (req, res) => {
-  const { token } = req.params;
-  const employee = db.prepare('SELECT * FROM employees WHERE qr_token = ?').get(token);
-  const wasValid = !!employee && !!employee.is_active;
-
-  db.prepare(`
-    INSERT INTO verification_logs (employee_id, qr_token, was_valid, ip_address)
-    VALUES (?, ?, ?, ?)
-  `).run(employee?.id ?? null, token, wasValid ? 1 : 0, req.ip);
-
-  res.json(employee
-    ? { valid: wasValid, token, employee: await rowToEmployee(employee, baseUrl(req)) }
-    : { valid: false, token, employee: null });
 });
 
 // ---- Static client (production build) ----
@@ -231,4 +248,10 @@ if (fs.existsSync(distDir)) {
   app.get('*', (_req, res) => res.sendFile(path.join(distDir, 'index.html')));
 }
 
-app.listen(PORT, () => console.log(`PrintPass API on http://localhost:${PORT}`));
+// ---- Start server ----
+initDb().then(() => {
+  app.listen(PORT, () => console.log(`PrintPass API on http://localhost:${PORT}`));
+}).catch((err) => {
+  console.error('Failed to initialize database:', err);
+  process.exit(1);
+});
