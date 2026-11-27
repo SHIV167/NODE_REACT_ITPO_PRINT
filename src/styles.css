@@ -507,8 +507,14 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
 
 .pass-grid { display: flex; flex-wrap: wrap; gap: 16px; }
 /* ---------- Pass grid and download ---------- */
-.pass-grid { display: flex; flex-wrap: wrap; gap: 20px; }
-.pass-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pass-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+.pass-item { display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0; }
 .pass-check { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: normal; cursor: pointer; }
 .pass-check input { cursor: pointer; }
 
@@ -561,11 +567,13 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
     break-after: page;
   }
 
-  /* Bulk mode: grid layout */
+  /* Bulk mode: single row layout */
   .print-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     gap: 4mm;
+    overflow-x: auto;
   }
 
   /* Scale for print */

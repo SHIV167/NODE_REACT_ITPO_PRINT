@@ -212,6 +212,7 @@ app.post('/api/employees/import', upload.single('file'), async (req, res) => {
         const country = row['COUNTRY']?.trim() || '';
         const countryCode = row['COUNTRY CODE']?.trim() || '';
         const mobile = row['MOBILE NUMBER ']?.toString().trim() || '';
+        const passportPhoto = row['PASSPORT PHOTO']?.trim() || '';
 
         if (!name || !designation || !mobile) {
           errors.push({ row: idx + 1, reason: 'Missing name, designation or mobile' });
@@ -222,12 +223,40 @@ app.post('/api/employees/import', upload.single('file'), async (req, res) => {
         const employeeCode = `${name.replace(/\s+/g, '').toUpperCase().slice(0, 6)}${suffix}`;
         const fullMobile = `${countryCode}${mobile}`;
 
-        await pool.query(`
-          INSERT INTO employees (employee_code, full_name, mobile, designation, email, company, qr_token, is_active)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, true)
-        `, [employeeCode, name, fullMobile, designation, email, company, newToken()]);
+        let photoPath = null;
+        if (passportPhoto) {
+          // If photo is a URL, download it
+          if (passportPhoto.startsWith('http://') || passportPhoto.startsWith('https://')) {
+            try {
+              const response = await fetch(passportPhoto);
+              if (response.ok) {
+                const buffer = Buffer.from(await response.arrayBuffer());
+                const ext = passportPhoto.split('.').pop().split('?')[0] || 'jpg';
+                const filename = `${crypto.randomUUID()}.${ext}`;
+                const destPath = path.join(photoDir, filename);
+                fs.writeFileSync(destPath, buffer);
+                photoPath = `/uploads/photos/${filename}`;
+              }
+            } catch (err) {
+              console.error('Failed to download photo:', err.message);
+            }
+          }
+          // If photo is a local file path, try to copy it
+          else if (fs.existsSync(passportPhoto)) {
+            const ext = path.extname(passportPhoto) || 'jpg';
+            const filename = `${crypto.randomUUID()}${ext}`;
+            const destPath = path.join(photoDir, filename);
+            fs.copyFileSync(passportPhoto, destPath);
+            photoPath = `/uploads/photos/${filename}`;
+          }
+        }
 
-        inserted.push({ row: idx + 1, name, employeeCode });
+        await pool.query(`
+          INSERT INTO employees (employee_code, full_name, mobile, designation, email, company, photo_path, qr_token, is_active)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+        `, [employeeCode, name, fullMobile, designation, email, company, photoPath, newToken()]);
+
+        inserted.push({ row: idx + 1, name, employeeCode, photoSaved: !!photoPath });
       } catch (e) {
         errors.push({ row: idx + 1, reason: e.message });
       }
