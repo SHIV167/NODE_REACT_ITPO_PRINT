@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs';
 import xlsx from 'xlsx';
+import JSZip from 'jszip';
 import { fileURLToPath } from 'node:url';
 import { pool, initDb } from './db.js';
 
@@ -274,6 +275,44 @@ const savePhoto = async (value) => {
 
 let req_excelDir = null;
 
+// Extract embedded images from xlsx: returns Map<sheetRow(0-based), {buf, ext}>
+async function extractEmbeddedPhotos(filePath) {
+  const map = new Map();
+  try {
+    const zip = await JSZip.loadAsync(fs.readFileSync(filePath));
+    const mediaFiles = Object.keys(zip.files).filter((n) => n.startsWith('xl/media/'));
+    if (!mediaFiles.length) return map;
+
+    // Find drawing files and their rels
+    const drawingFiles = Object.keys(zip.files).filter((n) => /^xl\/drawings\/drawing\d+\.xml$/.test(n));
+    for (const df of drawingFiles) {
+      const dir = df.replace(/\/[^/]+$/, '');
+      const relsName = `${dir}/_rels/${df.split('/').pop()}.rels`;
+      const relsXml = zip.files[relsName] ? await zip.files[relsName].async('string') : '';
+      const relMap = {};
+      for (const m of relsXml.matchAll(/Id="([^"]+)"[^>]*Target="([^"]+)"/g)) {
+        relMap[m[1]] = m[2].replace(/^\.\.\//, 'xl/');
+      }
+      const xml = await zip.files[df].async('string');
+      // each anchor: <xdr:from><xdr:col>..</xdr:col><xdr:row>R</xdr:row> ... <a:blip r:embed="rIdX">
+      const anchors = xml.split(/<xdr:twoCellAnchor[^>]*>|<xdr:oneCellAnchor[^>]*>/).slice(1);
+      for (const a of anchors) {
+        const rowM = a.match(/<xdr:from>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>/);
+        const embedM = a.match(/r:embed="([^"]+)"/);
+        if (!rowM || !embedM) continue;
+        const mediaPath = relMap[embedM[1]];
+        if (!mediaPath || !zip.files[mediaPath]) continue;
+        const buf = await zip.files[mediaPath].async('nodebuffer');
+        const ext = path.extname(mediaPath) || '.jpeg';
+        map.set(parseInt(rowM[1], 10), { buf, ext });
+      }
+    }
+  } catch (e) {
+    console.error('Embedded photo extraction failed:', e.message);
+  }
+  return map;
+}
+
 app.post('/api/employees/import', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   req_excelDir = path.dirname(req.file.path);
@@ -297,6 +336,8 @@ app.post('/api/employees/import', upload.single('file'), async (req, res) => {
     const colCode = findCol('EMPLOYEE ID', 'EMP ID', 'EMPLOYEE CODE', 'ID');
     const colCountry = findCol('COUNTRY CODE', 'COUNTRYCODE', 'DIAL CODE');
 
+    const embeddedPhotos = await extractEmbeddedPhotos(req.file.path);
+
     const inserted = [];
     const errors = [];
 
@@ -319,7 +360,16 @@ app.post('/api/employees/import', upload.single('file'), async (req, res) => {
           continue;
         }
 
-        const photoPath = await savePhoto(photoVal);
+        // Embedded image anchored to this row takes priority (header is sheet row 0, data starts row 1)
+        let photoPath = null;
+        const emb = embeddedPhotos.get(idx + 1);
+        if (emb) {
+          const filename = `${crypto.randomUUID()}${emb.ext}`;
+          fs.writeFileSync(path.join(photoDir, filename), emb.buf);
+          photoPath = `/uploads/photos/${filename}`;
+        } else {
+          photoPath = await savePhoto(photoVal);
+        }
 
         await pool.query(`
           INSERT INTO employees (employee_code, full_name, mobile, designation, email, company, photo_path, qr_token, is_active)
