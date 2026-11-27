@@ -565,10 +565,10 @@ th input[type="checkbox"], td input[type="checkbox"] { cursor: pointer; }
   .print-page { padding: 0; }
   .pass-grid, .print-grid { margin: 0; padding: 0; }
 
-  /* Page size handling */
+  /* Page size handling — use printer's default paper size */
   @page {
-    size: var(--page-size, A4);
-    margin: 8mm;
+    size: auto;
+    margin: 5mm;
   }
 
   /* Card sizing */
@@ -590,6 +590,11 @@ th input[type="checkbox"], td input[type="checkbox"] { cursor: pointer; }
   .print-single .pass-card {
     page-break-after: always;
     break-after: page;
+  }
+  .print-single .pass-card:last-child,
+  .print-grid .pass-card:last-child {
+    page-break-after: auto;
+    break-after: auto;
   }
 
   /* Bulk mode: wrapped grid, cards sized to fit page */
