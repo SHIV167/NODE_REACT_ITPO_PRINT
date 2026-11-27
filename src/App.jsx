@@ -33,23 +33,20 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/verify/:token" element={<VerifyResult />} />
         <Route
-          path="/*"
           element={
             <RequireAuth>
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/employees" element={<Employees />} />
-                  <Route path="/employees/new" element={<EmployeeForm />} />
-                  <Route path="/employees/:id/edit" element={<EmployeeForm />} />
-                  <Route path="/passes" element={<Passes />} />
-                  <Route path="/print" element={<Print />} />
-                  <Route path="/verify" element={<Verify />} />
-                </Routes>
-              </Layout>
+              <Layout />
             </RequireAuth>
           }
-        />
+        >
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/employees" element={<Employees />} />
+          <Route path="/employees/new" element={<EmployeeForm />} />
+          <Route path="/employees/:id/edit" element={<EmployeeForm />} />
+          <Route path="/passes" element={<Passes />} />
+          <Route path="/print" element={<Print />} />
+          <Route path="/verify" element={<Verify />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
