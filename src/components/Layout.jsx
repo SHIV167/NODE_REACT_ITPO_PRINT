@@ -1,7 +1,13 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { api } from '../api.js';
 
 export default function Layout() {
   const navigate = useNavigate();
+
+  const logout = async () => {
+    try { await api.logout(); } catch {}
+    navigate('/login');
+  };
 
   return (
     <>
@@ -13,6 +19,7 @@ export default function Layout() {
             <NavLink to="/employees">Employees</NavLink>
             <NavLink to="/passes">Passes</NavLink>
             <NavLink to="/verify">Verify</NavLink>
+            <button className="btn btn-logout" onClick={logout}>Logout</button>
           </div>
         </div>
       </nav>

@@ -26,8 +26,9 @@ export default function Login() {
   return (
     <div className="login-page">
       <form className="card login-card" onSubmit={submit}>
+        <div className="login-badge">IP</div>
         <h2>ITPO Pass System</h2>
-        <p className="muted">Sign in to continue</p>
+        <p className="muted">45th IITF • Vikas aur Virasat</p>
         {error && <div className="alert alert-error">{error}</div>}
         <div className="form-group">
           <label>Username</label>
@@ -40,6 +41,7 @@ export default function Login() {
         <button className="btn btn-block" type="submit" disabled={loading}>
           {loading ? 'Signing in…' : 'Sign In'}
         </button>
+        <p className="login-footer">Authorized personnel only</p>
       </form>
     </div>
   );
