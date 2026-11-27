@@ -153,6 +153,26 @@ app.delete('/api/employees/:id', async (req, res) => {
   }
 });
 
+// ---- Bulk delete ----
+app.post('/api/employees/bulk-delete', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array required' });
+    }
+    const photos = await pool.query(
+      'SELECT photo_path FROM employees WHERE id = ANY($1::int[])', [ids]
+    );
+    photos.rows.forEach((r) => deletePhoto(r.photo_path));
+    const result = await pool.query(
+      'DELETE FROM employees WHERE id = ANY($1::int[])', [ids]
+    );
+    res.json({ deleted: result.rowCount });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---- Dashboard ----
 app.get('/api/dashboard', async (req, res) => {
   try {

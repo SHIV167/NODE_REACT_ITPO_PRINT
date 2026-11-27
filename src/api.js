@@ -23,4 +23,11 @@ export const api = {
 
   deleteEmployee: (id) =>
     request(`/api/employees/${id}`, { method: 'DELETE' }),
+
+  bulkDeleteEmployees: (ids) =>
+    request('/api/employees/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    }),
 };

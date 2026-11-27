@@ -8,6 +8,7 @@ export default function Employees() {
   const [error, setError] = useState('');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [selected, setSelected] = useState(new Set());
 
   const load = () => {
     api.getEmployees(search).then(setEmployees).catch((e) => setError(e.message));
@@ -19,6 +20,26 @@ export default function Employees() {
     if (!window.confirm('Delete this employee?')) return;
     try {
       await api.deleteEmployee(id);
+      load();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const bulkDelete = async () => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Delete ${selected.size} selected employee(s)?`)) return;
+    try {
+      await api.bulkDeleteEmployees([...selected]);
+      setSelected(new Set());
       load();
     } catch (e) {
       setError(e.message);
@@ -58,6 +79,14 @@ export default function Employees() {
         </div>
       </div>
 
+      {selected.size > 0 && (
+        <div className="bulk-bar">
+          <span>{selected.size} selected</span>
+          <button className="btn btn-danger btn-sm" onClick={bulkDelete}>Delete selected</button>
+          <button className="btn btn-outline btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
+        </div>
+      )}
+
       <div className="card">
         <form className="search-bar" onSubmit={(e) => e.preventDefault()}>
           <input
@@ -91,13 +120,15 @@ export default function Employees() {
           <table>
             <thead>
               <tr>
+                <th><input type="checkbox" onChange={(e) => setSelected(e.target.checked ? new Set(employees.map((x) => x.id)) : new Set())} checked={employees.length > 0 && selected.size === employees.length} /></th>
                 <th>Photo</th><th>Employee ID</th><th>Name</th><th>Designation</th>
                 <th>Company</th><th>Email</th><th>Mobile</th><th>QR Token</th><th>Status</th><th></th>
               </tr>
             </thead>
             <tbody>
               {employees.map((e) => (
-                <tr key={e.id}>
+                <tr key={e.id} className={selected.has(e.id) ? 'row-selected' : ''}>
+                  <td><input type="checkbox" checked={selected.has(e.id)} onChange={() => toggleSelect(e.id)} /></td>
                   <td>
                     {e.photoPath
                       ? <img className="thumb" src={e.photoPath} alt="" />
@@ -122,7 +153,7 @@ export default function Employees() {
                 </tr>
               ))}
               {employees.length === 0 && (
-                <tr><td colSpan="10" className="muted center">No employees found.</td></tr>
+                <tr><td colSpan="11" className="muted center">No employees found.</td></tr>
               )}
             </tbody>
           </table>
