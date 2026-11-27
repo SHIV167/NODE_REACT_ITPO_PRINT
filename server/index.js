@@ -191,70 +191,120 @@ app.get('/api/verify/:token', async (req, res) => {
 });
 
 // ---- Excel import ----
+const norm = (s) => (s || '').toString().toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+const pick = (row, keys) => {
+  const normKeys = keys.map(norm);
+  for (const [k, v] of Object.entries(row)) {
+    if (normKeys.includes(norm(k)) && v !== undefined && v !== null && v !== '') return v;
+  }
+  return null;
+};
+
+const str = (v) => (v === undefined || v === null ? '' : v.toString().trim());
+
+const savePhoto = async (value) => {
+  const p = str(value);
+  if (!p) return null;
+
+  // data URL / base64
+  if (p.startsWith('data:image')) {
+    const m = p.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (m) {
+      const ext = m[1] === 'jpeg' ? 'jpg' : m[1];
+      const filename = `${crypto.randomUUID()}.${ext}`;
+      fs.writeFileSync(path.join(photoDir, filename), Buffer.from(m[2], 'base64'));
+      return `/uploads/photos/${filename}`;
+    }
+  }
+
+  // URL
+  if (p.startsWith('http://') || p.startsWith('https://')) {
+    try {
+      const res = await fetch(p);
+      if (res.ok) {
+        const buf = Buffer.from(await res.arrayBuffer());
+        const ct = res.headers.get('content-type') || '';
+        const ext = ct.includes('png') ? 'png' : ct.includes('webp') ? 'webp' : 'jpg';
+        const filename = `${crypto.randomUUID()}.${ext}`;
+        fs.writeFileSync(path.join(photoDir, filename), buf);
+        return `/uploads/photos/${filename}`;
+      }
+    } catch (e) {
+      console.error('Photo download failed:', e.message);
+    }
+    return null;
+  }
+
+  // Local file path — try as-is and relative to the Excel file's folder
+  const candidates = [p];
+  if (req_excelDir) candidates.push(path.join(req_excelDir, p));
+  for (const c of candidates) {
+    try {
+      if (fs.existsSync(c) && fs.statSync(c).isFile()) {
+        const ext = path.extname(c) || '.jpg';
+        const filename = `${crypto.randomUUID()}${ext}`;
+        fs.copyFileSync(c, path.join(photoDir, filename));
+        return `/uploads/photos/${filename}`;
+      }
+    } catch {}
+  }
+  return null;
+};
+
+let req_excelDir = null;
+
 app.post('/api/employees/import', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  req_excelDir = path.dirname(req.file.path);
 
   try {
     const workbook = xlsx.readFile(req.file.path);
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = xlsx.utils.sheet_to_json(sheet, { defval: '' });
+
+    // Map columns flexibly
+    const sample = rows[0] || {};
+    const headers = Object.keys(sample);
+    const findCol = (...aliases) => headers.find((h) => aliases.map(norm).includes(norm(h))) || null;
+
+    const colName = findCol('NAME', 'PERSON NAME', 'EMPLOYEE NAME', 'FULL NAME', 'EMP NAME');
+    const colMobile = findCol('MOBILE NUMBER', 'MOBILE', 'PHONE', 'PHONE NUMBER', 'MOBILENUMBER');
+    const colPhoto = findCol('PHOTO', 'PASSPORT PHOTO', 'IMAGE', 'PASS PHOTO', 'PHOTOGRAPH');
+    const colDesig = findCol('DESIGNATION', 'DESIG', 'ROLE', 'POST');
+    const colEmail = findCol('EMAIL', 'E-MAIL', 'MAIL');
+    const colCompany = findCol('COMPANY NAME', 'COMPANY', 'ORGANIZATION', 'ORG');
+    const colCode = findCol('EMPLOYEE ID', 'EMP ID', 'EMPLOYEE CODE', 'ID');
+    const colCountry = findCol('COUNTRY CODE', 'COUNTRYCODE', 'DIAL CODE');
 
     const inserted = [];
     const errors = [];
 
     for (const [idx, row] of rows.entries()) {
       try {
-        const name = row['PERSON NAME']?.trim();
-        const designation = row['DESIGNATION']?.trim();
-        const email = row['EMAIL']?.trim() || null;
-        const company = row['COMPANY NAME']?.trim() || null;
-        const country = row['COUNTRY']?.trim() || '';
-        const countryCode = row['COUNTRY CODE']?.trim() || '';
-        const mobile = row['MOBILE NUMBER ']?.toString().trim() || '';
-        const passportPhoto = row['PASSPORT PHOTO']?.trim() || '';
+        const name = str(pick(row, [colName].filter(Boolean)));
+        const mobileRaw = pick(row, [colMobile, colCountry].filter(Boolean));
+        const mobileParts = [pick(row, [colCountry].filter(Boolean)), pick(row, [colMobile].filter(Boolean))]
+          .map((v) => str(v)).filter(Boolean);
+        const mobile = mobileParts.join('');
+        const designation = str(pick(row, [colDesig].filter(Boolean))) || 'Staff';
+        const email = str(pick(row, [colEmail].filter(Boolean))) || null;
+        const company = str(pick(row, [colCompany].filter(Boolean))) || null;
+        const employeeCode = str(pick(row, [colCode].filter(Boolean))) ||
+          `${name.replace(/\s+/g, '').toUpperCase().slice(0, 6)}${Math.floor(Math.random() * 9000) + 1000}`;
+        const photoVal = pick(row, [colPhoto].filter(Boolean));
 
-        if (!name || !designation || !mobile) {
-          errors.push({ row: idx + 1, reason: 'Missing name, designation or mobile' });
+        if (!name || !mobile) {
+          errors.push({ row: idx + 1, reason: 'Missing name or mobile' });
           continue;
         }
 
-        const suffix = Math.floor(Math.random() * 9000) + 1000;
-        const employeeCode = `${name.replace(/\s+/g, '').toUpperCase().slice(0, 6)}${suffix}`;
-        const fullMobile = `${countryCode}${mobile}`;
-
-        let photoPath = null;
-        if (passportPhoto) {
-          // If photo is a URL, download it
-          if (passportPhoto.startsWith('http://') || passportPhoto.startsWith('https://')) {
-            try {
-              const response = await fetch(passportPhoto);
-              if (response.ok) {
-                const buffer = Buffer.from(await response.arrayBuffer());
-                const ext = passportPhoto.split('.').pop().split('?')[0] || 'jpg';
-                const filename = `${crypto.randomUUID()}.${ext}`;
-                const destPath = path.join(photoDir, filename);
-                fs.writeFileSync(destPath, buffer);
-                photoPath = `/uploads/photos/${filename}`;
-              }
-            } catch (err) {
-              console.error('Failed to download photo:', err.message);
-            }
-          }
-          // If photo is a local file path, try to copy it
-          else if (fs.existsSync(passportPhoto)) {
-            const ext = path.extname(passportPhoto) || 'jpg';
-            const filename = `${crypto.randomUUID()}${ext}`;
-            const destPath = path.join(photoDir, filename);
-            fs.copyFileSync(passportPhoto, destPath);
-            photoPath = `/uploads/photos/${filename}`;
-          }
-        }
+        const photoPath = await savePhoto(photoVal);
 
         await pool.query(`
           INSERT INTO employees (employee_code, full_name, mobile, designation, email, company, photo_path, qr_token, is_active)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
-        `, [employeeCode, name, fullMobile, designation, email, company, photoPath, newToken()]);
+        `, [employeeCode, name, mobile, designation, email, company, photoPath, newToken()]);
 
         inserted.push({ row: idx + 1, name, employeeCode, photoSaved: !!photoPath });
       } catch (e) {
@@ -263,7 +313,11 @@ app.post('/api/employees/import', upload.single('file'), async (req, res) => {
     }
 
     const savedPath = req.file.path.replace(/\\/g, '/').split('/uploads/')[1];
-    res.json({ inserted, errors, total: rows.length, savedFile: savedPath });
+    res.json({
+      inserted, errors, total: rows.length, savedFile: savedPath,
+      columns: { colName, colMobile, colPhoto, colDesig, colEmail, colCompany, colCode, colCountry },
+      photosSaved: inserted.filter((i) => i.photoSaved).length,
+    });
   } catch (e) {
     if (req.file) fs.unlink(req.file.path, () => {});
     res.status(400).json({ error: e.message });
