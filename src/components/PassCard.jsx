@@ -19,17 +19,21 @@ export default function PassCard({ employee }) {
 
       {/* Main content */}
       <div className="pass-content">
-        <div className="pass-title-row">
-          <div className="pass-vikas">VIKAS aur VIRASAT</div>
-          <div className="pass-development">Development & Heritage</div>
-        </div>
-        <div className="pass-dates-row">
-          <div className="pass-dates">13-27 November 2026</div>
+        <div className="pass-event-block">
+          <div className="pass-vikas">VIKAS <span className="aur">aur</span> VIRASAT</div>
+          <div className="pass-development">Development &amp; Heritage</div>
+          <div className="pass-dates-pill">13-27 November 2026</div>
           <div className="pass-venue">Bharat Mandapam, New Delhi</div>
         </div>
         <div className="pass-states">
-          <div className="pass-state-label">PARTNER STATES : BIHAR, MAHARASHTRA, RAJASTHAN & UTTAR PRADESH</div>
-          <div className="pass-state-label">FOCUS STATES : ASSAM, DELHI, JHARKHAND & WEST BENGAL</div>
+          <div className="pass-state-row">
+            <span className="pass-state-tag partner">PARTNER STATES</span>
+            <span className="pass-state-names">BIHAR, MAHARASHTRA, RAJASTHAN &amp; UTTAR PRADESH</span>
+          </div>
+          <div className="pass-state-row">
+            <span className="pass-state-tag focus">FOCUS STATES</span>
+            <span className="pass-state-names">ASSAM, DELHI, JHARKHAND &amp; WEST BENGAL</span>
+          </div>
         </div>
         <div className="pass-divider"></div>
         <div className="pass-person-section">
