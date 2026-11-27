@@ -47,54 +47,56 @@ export default function Passes() {
   };
 
   return (
-    <>
-      <div className="page-head">
+    <div className="page-wrapper">
+      <div className="page-header">
         <h2>Passes</h2>
       </div>
 
-      <div className="toolbar">
-        <input
-          type="text"
-          placeholder="Search name, ID, designation"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <button className="btn btn-primary" disabled={selected.size === 0} onClick={() => print('bulk')}>
-          Print bulk ({selected.size})
-        </button>
-        <button className="btn btn-outline" disabled={selected.size === 0} onClick={() => print('single')}>
-          Print single
-        </button>
-        <button className="btn" onClick={toggleAll}>{allChecked ? 'Clear' : 'Select all'}</button>
-      </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
-
-      {employees.length === 0 ? (
-        <div className="alert alert-info">No active employees found.</div>
-      ) : (
-        <div className="pass-grid">
-          {employees.map((e) => (
-            <div className="pass-item" key={e.id}>
-              <label className="pass-check">
-                <input
-                  type="checkbox"
-                  checked={selected.has(e.id)}
-                  onChange={() => toggle(e.id)}
-                />
-                Select
-              </label>
-              <div id={`pass-card-${e.id}`}>
-                <PassCard employee={e} />
-              </div>
-              <div className="muted small center">{e.qrToken}</div>
-              <button className="btn btn-sm btn-outline mt-1" onClick={() => downloadTemplate(e)}>
-                Download PNG
-              </button>
-            </div>
-          ))}
+      <div className="card">
+        <div className="toolbar">
+          <input
+            type="text"
+            placeholder="Search name, ID, designation"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button className="btn btn-primary" disabled={selected.size === 0} onClick={() => print('bulk')}>
+            Print bulk ({selected.size})
+          </button>
+          <button className="btn btn-outline" disabled={selected.size === 0} onClick={() => print('single')}>
+            Print single
+          </button>
+          <button className="btn btn-outline" onClick={toggleAll}>{allChecked ? 'Clear' : 'Select all'}</button>
         </div>
-      )}
-    </>
+
+        {error && <div className="alert alert-error">{error}</div>}
+
+        {employees.length === 0 ? (
+          <div className="alert alert-info">No active employees found.</div>
+        ) : (
+          <div className="pass-grid">
+            {employees.map((e) => (
+              <div className="pass-item" key={e.id}>
+                <label className="pass-check">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(e.id)}
+                    onChange={() => toggle(e.id)}
+                  />
+                  Select
+                </label>
+                <div id={`pass-card-${e.id}`}>
+                  <PassCard employee={e} />
+                </div>
+                <div className="muted small center">{e.qrToken}</div>
+                <button className="btn btn-sm btn-outline mt-1" onClick={() => downloadTemplate(e)}>
+                  Download PNG
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 
 export default function VerifyResult() {
   const { token } = useParams();
+  const navigate = useNavigate();
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
 
@@ -17,8 +18,14 @@ export default function VerifyResult() {
   const emp = result.employee;
 
   return (
-    <div className="verify-page">
-      <div className="card center">
+    <div className="page-wrapper">
+      <div className="page-header">
+        <button className="btn btn-outline" onClick={() => navigate('/verify')}>
+          ← Back to Verify
+        </button>
+        <h2>Verification Result</h2>
+      </div>
+      <div className="card verify-card">
         <div className={`verdict ${result.valid ? 'verdict-ok' : 'verdict-bad'}`}>
           {result.valid ? '✔ Valid pass' : '✘ Invalid pass'}
         </div>

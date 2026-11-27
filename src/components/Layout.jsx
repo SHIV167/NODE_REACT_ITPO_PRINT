@@ -1,11 +1,13 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 export default function Layout() {
+  const navigate = useNavigate();
+
   return (
     <>
       <nav className="navbar">
         <div className="nav-inner">
-          <span className="brand">PrintPass</span>
+          <span className="brand" onClick={() => navigate('/')}>PrintPass</span>
           <div className="nav-links">
             <NavLink to="/" end>Dashboard</NavLink>
             <NavLink to="/employees">Employees</NavLink>

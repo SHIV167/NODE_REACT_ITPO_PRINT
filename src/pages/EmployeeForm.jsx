@@ -54,41 +54,48 @@ export default function EmployeeForm() {
 
   return (
     <div className="form-page">
-      <h2>{isEdit ? 'Edit employee' : 'Add employee'}</h2>
+      <div className="page-header">
+        <button className="btn btn-outline" onClick={() => navigate('/employees')}>
+          ← Back to Employees
+        </button>
+        <h2>{isEdit ? 'Edit employee' : 'Add employee'}</h2>
+      </div>
       {error && <div className="alert alert-error">{error}</div>}
-      <form onSubmit={submit} encType="multipart/form-data">
-        <div className="mb-3">
-          <label>Employee ID</label>
-          <input required value={form.employeeCode} onChange={set('employeeCode')} />
-        </div>
-        <div className="mb-3">
-          <label>Full name</label>
-          <input required value={form.fullName} onChange={set('fullName')} />
-        </div>
-        <div className="mb-3">
-          <label>Mobile number</label>
-          <input required value={form.mobile} onChange={set('mobile')} />
-        </div>
-        <div className="mb-3">
-          <label>Designation</label>
-          <input required value={form.designation} onChange={set('designation')} />
-        </div>
-        <div className="mb-3">
-          <label>Email (optional)</label>
-          <input type="email" value={form.email} onChange={set('email')} />
-        </div>
-        <div className="mb-3">
-          <label>Company (optional)</label>
-          <input value={form.company} onChange={set('company')} />
+      <form onSubmit={submit} encType="multipart/form-data" className="card">
+        <div className="form-grid">
+          <div className="form-group">
+            <label>Employee ID</label>
+            <input required value={form.employeeCode} onChange={set('employeeCode')} />
+          </div>
+          <div className="form-group">
+            <label>Full name</label>
+            <input required value={form.fullName} onChange={set('fullName')} />
+          </div>
+          <div className="form-group">
+            <label>Mobile number</label>
+            <input required value={form.mobile} onChange={set('mobile')} />
+          </div>
+          <div className="form-group">
+            <label>Designation</label>
+            <input required value={form.designation} onChange={set('designation')} />
+          </div>
+          <div className="form-group">
+            <label>Email (optional)</label>
+            <input type="email" value={form.email} onChange={set('email')} />
+          </div>
+          <div className="form-group">
+            <label>Company (optional)</label>
+            <input value={form.company} onChange={set('company')} />
+          </div>
         </div>
         {isEdit && (
-          <div className="mb-3">
+          <div className="form-group">
             <label className="check">
               <input type="checkbox" checked={form.isActive} onChange={set('isActive')} /> Active
             </label>
           </div>
         )}
-        <div className="mb-3">
+        <div className="form-group">
           {currentPhoto && (
             <div className="mb-2">
               <img className="thumb-lg" src={currentPhoto} alt="Current" />
@@ -99,8 +106,10 @@ export default function EmployeeForm() {
           <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files[0] || null)} />
           <div className="muted small">JPG, PNG or WebP, max 5 MB.</div>
         </div>
-        <button className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-        <button type="button" className="btn" onClick={() => navigate('/employees')}>Cancel</button>
+        <div className="form-actions">
+          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+          <button type="button" className="btn btn-outline" onClick={() => navigate('/employees')}>Cancel</button>
+        </div>
       </form>
     </div>
   );
