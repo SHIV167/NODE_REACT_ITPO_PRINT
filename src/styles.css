@@ -245,17 +245,16 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
   font-weight: 500;
 }
 
-/* ---------- Pass card (Exact IITF design from screenshot) ---------- */
+/* ---------- Pass card (Exact screenshot match) ---------- */
 .pass-card {
   width: 340px;
-  border: 1px solid #ccc;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
   background: #fff;
   margin: 0 auto;
   font-family: Arial, Helvetica, sans-serif;
   position: relative;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 /* Lanyard slot */
@@ -265,159 +264,155 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
   top: 8px;
   left: 50%;
   transform: translateX(-50%);
-  width: 64px;
+  width: 60px;
   height: 10px;
-  background: #f5f5f5;
+  background: #f0f0f0;
   border-radius: 5px;
   border: 1px solid #ddd;
   z-index: 2;
 }
 
-/* Top section */
-.pass-top {
-  background: #fff;
-  padding: 20px 12px 8px;
-  text-align: center;
-  border-bottom: 2px solid #d4af37;
-}
-
-.pass-logo-row {
+/* Top gold band */
+.pass-top-band {
+  background: linear-gradient(180deg, #f4d03f 0%, #d4ac0d 100%);
+  padding: 8px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-  padding: 0 8px;
+  border-bottom: 2px solid #b8860b;
 }
 
-.pass-itf-logo {
-  width: 40px;
-  height: 40px;
+.pass-top-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.itf-circle {
-  width: 40px;
-  height: 40px;
+.pass-45th {
+  font-size: 20px;
+  font-weight: bold;
+  color: #dc2626;
+  letter-spacing: 1px;
+}
+
+.pass-iitf-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.iitf-globe {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1a5fb4 0%, #3584e4 100%);
+  background: linear-gradient(135deg, #8b4513 0%, #a0522d 50%, #8b4513 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  border: 2px solid #d4ac0d;
 }
 
-.itf-circle::before {
-  content: '';
-  position: absolute;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.3);
-}
-
-.itf-text {
+.iitf-text {
   color: #fff;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: bold;
-  letter-spacing: 1px;
-  z-index: 1;
+  letter-spacing: 0.5px;
+  text-transform: lowercase;
 }
 
-.pass-itpo-logo {
-  font-size: 14px;
+.pass-top-right {
+  text-align: right;
+}
+
+.pass-organiser {
+  font-size: 9px;
+  color: #333;
+  font-weight: 600;
+}
+
+.pass-itpo {
+  font-size: 16px;
   font-weight: bold;
   color: #1a3a6b;
   letter-spacing: 2px;
 }
 
-.pass-event-title {
-  font-size: 22px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 4px;
-  letter-spacing: 1px;
+/* Main content */
+.pass-content {
+  background: #fff;
+  padding: 12px;
 }
 
-.pass-slogan {
-  font-size: 14px;
+.pass-title-row {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.pass-vikas {
+  font-size: 16px;
   font-weight: bold;
-  color: #1a5fb4;
+  color: #1e40af;
+  letter-spacing: 1px;
   margin-bottom: 2px;
-  letter-spacing: 1px;
 }
 
-.pass-sub-slogan {
+.pass-development {
   font-size: 11px;
-  color: #666;
-  margin-bottom: 6px;
+  color: #4b5563;
   letter-spacing: 0.5px;
+}
+
+.pass-dates-row {
+  text-align: center;
+  margin-bottom: 8px;
 }
 
 .pass-dates {
-  background: linear-gradient(90deg, #f9d423 0%, #ff4e50 100%);
-  color: #fff;
   font-size: 12px;
-  font-weight: bold;
-  padding: 6px 12px;
-  border-radius: 4px;
-  margin: 8px auto;
-  max-width: 240px;
-  letter-spacing: 0.5px;
+  font-weight: 600;
+  color: #dc2626;
+  margin-bottom: 2px;
 }
 
 .pass-venue {
   font-size: 10px;
-  color: #555;
-  margin-top: 4px;
+  color: #6b7280;
 }
 
-/* States section */
-.pass-states-section {
-  background: #faf8f5;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e0d5c0;
+.pass-states {
+  text-align: center;
+  margin-bottom: 8px;
 }
 
-.pass-states-group {
-  margin-bottom: 6px;
-}
-
-.pass-states-group:last-child {
-  margin-bottom: 0;
-}
-
-.pass-states-label {
-  font-size: 8px;
-  font-weight: bold;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 2px;
-}
-
-.pass-states-names {
+.pass-state-label {
   font-size: 9px;
-  color: #333;
-  line-height: 1.3;
-  font-weight: 500;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.4;
+  text-transform: uppercase;
 }
 
-/* Middle section with photo, details, QR */
-.pass-middle {
+.pass-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #d4ac0d, transparent);
+  margin: 8px 0;
+}
+
+.pass-person-section {
   display: flex;
   align-items: center;
-  padding: 12px;
   gap: 10px;
-  background: #fff;
 }
 
 .pass-photo {
-  width: 80px;
-  height: 100px;
-  flex: 0 0 80px;
-  border: 2px solid #ddd;
+  width: 70px;
+  height: 85px;
+  flex: 0 0 70px;
+  border: 2px solid #d4ac0d;
   border-radius: 6px;
   overflow: hidden;
-  background: #f0f0f0;
+  background: #f9fafb;
 }
 
 .pass-photo img {
@@ -432,52 +427,29 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
+  font-size: 28px;
   font-weight: bold;
-  color: #1a3a6b;
+  color: #9ca3af;
 }
 
-.pass-person-details {
+.pass-person-info {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 }
 
 .pass-name {
   font-size: 14px;
   font-weight: bold;
-  color: #1a3a6b;
+  color: #000;
   margin-bottom: 4px;
   word-wrap: break-word;
   text-transform: uppercase;
 }
 
-.pass-designation {
+.pass-company {
   font-size: 12px;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 3px;
-}
-
-.pass-company {
-  font-size: 10px;
-  color: #666;
-  margin-bottom: 2px;
-}
-
-.pass-email {
-  font-size: 9px;
-  color: #666;
-  margin-bottom: 2px;
-  word-break: break-all;
-}
-
-.pass-mobile {
-  font-size: 10px;
-  color: #555;
-  font-weight: 500;
+  color: #4b5563;
 }
 
 .pass-qr-section {
@@ -486,45 +458,48 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
 }
 
 .pass-qr-section img {
-  width: 64px;
-  height: 64px;
-  border: 1px solid #ddd;
+  width: 60px;
+  height: 60px;
+  border: 1px solid #e5e7eb;
   border-radius: 4px;
   padding: 2px;
   background: #fff;
 }
 
-.pass-qr-text {
+.pass-qr-code {
   font-size: 7px;
-  color: #555;
+  color: #6b7280;
   word-break: break-all;
   margin-top: 4px;
-  font-family: monospace;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
 }
 
-/* Bottom validity section */
-.pass-bottom {
-  background: linear-gradient(90deg, #d4af37 0%, #f5d76e 50%, #d4af37 100%);
+/* Bottom gold band */
+.pass-bottom-band {
+  background: linear-gradient(180deg, #f4d03f 0%, #d4ac0d 100%);
   color: #333;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 10px 12px;
   font-size: 10px;
   font-weight: 600;
+  border-top: 2px solid #b8860b;
 }
 
 .pass-validity {
   flex: 1;
   font-size: 9px;
+  color: #333;
 }
 
 .pass-status {
   background: #1a3a6b;
   color: #fff;
-  padding: 5px 12px;
+  padding: 6px 16px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: bold;
   letter-spacing: 1px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -568,8 +543,7 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
   /* Card sizing */
   .pass-card {
     width: 85.6mm;
-    border-width: 0.5mm;
-    border-radius: 2mm;
+    border-radius: 3mm;
     page-break-inside: avoid;
     break-inside: avoid;
   }
@@ -577,7 +551,7 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
   /* Lanyard slot */
   .pass-card::before {
     top: 2mm;
-    width: 16mm;
+    width: 15mm;
     height: 2.5mm;
   }
 
@@ -595,35 +569,30 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
   }
 
   /* Scale for print */
-  .pass-top { padding: 5mm 2mm 2mm; }
-  .pass-logo-row { padding: 0 2mm; margin-bottom: 1mm; }
-  .pass-itf-logo { width: 10mm; height: 10mm; }
-  .itf-circle { width: 10mm; height: 10mm; }
-  .itf-circle::before { width: 8mm; height: 8mm; }
-  .itf-text { font-size: 2.5mm; }
-  .pass-itpo-logo { font-size: 3.5mm; }
-  .pass-event-title { font-size: 5.5mm; }
-  .pass-slogan { font-size: 3.5mm; }
-  .pass-sub-slogan { font-size: 2.7mm; }
-  .pass-dates { font-size: 3mm; padding: 1.5mm 3mm; max-width: 63mm; }
+  .pass-top-band { padding: 2mm 3mm; }
+  .pass-45th { font-size: 5mm; }
+  .iitf-globe { width: 8mm; height: 8mm; border-width: 0.3mm; }
+  .iitf-text { font-size: 2mm; }
+  .pass-organiser { font-size: 2.2mm; }
+  .pass-itpo { font-size: 4mm; }
+  .pass-content { padding: 3mm; }
+  .pass-vikas { font-size: 4mm; }
+  .pass-development { font-size: 2.8mm; }
+  .pass-dates { font-size: 3mm; }
   .pass-venue { font-size: 2.5mm; }
-  .pass-states-section { padding: 2mm 3mm; }
-  .pass-states-label { font-size: 2mm; }
-  .pass-states-names { font-size: 2.3mm; }
-  .pass-middle { padding: 3mm; gap: 2.5mm; }
-  .pass-photo { width: 21mm; height: 26mm; flex-basis: 21mm; border-width: 0.5mm; border-radius: 1.5mm; }
-  .pass-photo-placeholder { font-size: 9mm; }
+  .pass-state-label { font-size: 2.2mm; }
+  .pass-divider { margin: 2mm 0; }
+  .pass-person-section { gap: 2.5mm; }
+  .pass-photo { width: 18mm; height: 22mm; flex-basis: 18mm; border-width: 0.5mm; border-radius: 1.5mm; }
+  .pass-photo-placeholder { font-size: 8mm; }
   .pass-name { font-size: 3.7mm; }
-  .pass-designation { font-size: 3.2mm; }
-  .pass-company { font-size: 2.6mm; }
-  .pass-email { font-size: 2.3mm; }
-  .pass-mobile { font-size: 2.6mm; }
+  .pass-company { font-size: 3mm; }
   .pass-qr-section { flex-basis: 18mm; }
-  .pass-qr-section img { width: 17mm; height: 17mm; border-width: 0.3mm; padding: 0.5mm; }
-  .pass-qr-text { font-size: 1.8mm; }
-  .pass-bottom { padding: 2mm 3mm; font-size: 2.5mm; }
-  .pass-validity { font-size: 2.3mm; }
-  .pass-status { padding: 1.2mm 3mm; font-size: 2.8mm; }
+  .pass-qr-section img { width: 16mm; height: 16mm; border-width: 0.2mm; padding: 0.5mm; }
+  .pass-qr-code { font-size: 1.8mm; }
+  .pass-bottom-band { padding: 2.5mm 3mm; font-size: 2.5mm; }
+  .pass-validity { font-size: 2.2mm; }
+  .pass-status { padding: 1.5mm 4mm; font-size: 3.5mm; }
 }
 
 /* ---------- Verify result ---------- */
