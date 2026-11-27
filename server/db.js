@@ -41,7 +41,36 @@ const initDb = async () => {
       CREATE INDEX IF NOT EXISTS idx_employees_qr_token ON employees(qr_token);
       CREATE INDEX IF NOT EXISTS idx_verification_logs_qr_token ON verification_logs(qr_token);
       CREATE INDEX IF NOT EXISTS idx_verification_logs_verified_at ON verification_logs(verified_at DESC);
+
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        full_name TEXT,
+        role TEXT NOT NULL DEFAULT 'admin',
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS sessions (
+        token TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
     `);
+
+    // Seed default admin if none exists
+    const { rows } = await pool.query('SELECT COUNT(*) AS n FROM users');
+    if (parseInt(rows[0].n, 10) === 0) {
+      const crypto = await import('node:crypto');
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hash = crypto.scryptSync('admin123', salt, 64).toString('hex');
+      await pool.query(
+        'INSERT INTO users (username, password_hash, full_name, role) VALUES ($1, $2, $3, $4)',
+        ['admin', `${salt}:${hash}`, 'Administrator', 'admin']
+      );
+      console.log('Default admin user created (admin / admin123)');
+    }
     console.log('PostgreSQL tables initialized');
   } catch (err) {
     console.error('Error initializing PostgreSQL tables:', err);

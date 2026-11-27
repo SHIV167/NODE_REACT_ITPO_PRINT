@@ -8,6 +8,7 @@ import xlsx from 'xlsx';
 import JSZip from 'jszip';
 import { fileURLToPath } from 'node:url';
 import { pool, initDb } from './db.js';
+import { COOKIE_NAME, authMiddleware, createSession, destroySession, getSessionUser, parseCookies, verifyPassword } from './auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
@@ -45,6 +46,45 @@ const upload = multer({
 });
 
 app.use('/uploads', express.static(uploadDir));
+
+// ---- Auth ----
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    const { rows } = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    const user = rows[0];
+    if (!user || !verifyPassword(password || '', user.password_hash)) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    const token = await createSession(user.id);
+    res.cookie(COOKIE_NAME, token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 8 * 60 * 60 * 1000,
+      secure: process.env.NODE_ENV === 'production',
+    });
+    res.json({ user: { id: user.id, username: user.username, fullName: user.full_name, role: user.role } });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+  await destroySession(parseCookies(req)[COOKIE_NAME]);
+  res.clearCookie(COOKIE_NAME);
+  res.json({ ok: true });
+});
+
+app.get('/api/auth/me', async (req, res) => {
+  const user = await getSessionUser(parseCookies(req)[COOKIE_NAME]);
+  res.json({ user: user || null });
+});
+
+// Protect all API routes except auth and public verify
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/auth/') || req.path.startsWith('/verify/')) return next();
+  authMiddleware(req, res, next);
+});
 
 // ---- Helpers ----
 const newToken = () => {

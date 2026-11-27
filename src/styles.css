@@ -687,3 +687,20 @@ th input[type="checkbox"], td input[type="checkbox"] { cursor: pointer; }
   padding: 4px 8px;
   font-weight: 500;
 }
+
+/* ---- Login ---- */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e3a8a, #0f172a);
+  padding: 16px;
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+.login-card h2 { margin-bottom: 4px; }
+.login-card .btn-block { width: 100%; margin-top: 8px; }

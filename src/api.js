@@ -1,5 +1,5 @@
 async function request(url, options = {}) {
-  const res = await fetch(url, options);
+  const res = await fetch(url, { credentials: 'include', ...options });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed (${res.status})`);
@@ -30,4 +30,15 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids }),
     }),
+
+  login: (username, password) =>
+    request('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    }),
+
+  logout: () => request('/api/auth/logout', { method: 'POST' }),
+
+  me: () => request('/api/auth/me'),
 };
