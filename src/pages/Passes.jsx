@@ -8,6 +8,8 @@ export default function Passes() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(new Set());
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(12); // cards per page
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,6 +31,11 @@ export default function Passes() {
   const toggleAll = () => {
     setSelected(allChecked ? new Set() : new Set(employees.map((e) => e.id)));
   };
+
+  const totalPages = Math.ceil(employees.length / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedEmployees = employees.slice(startIndex, endIndex);
 
   const print = (mode = 'bulk') => {
     if (selected.size === 0) return;
@@ -74,27 +81,41 @@ export default function Passes() {
         {employees.length === 0 ? (
           <div className="alert alert-info">No active employees found.</div>
         ) : (
-          <div className="pass-grid">
-            {employees.map((e) => (
-              <div className="pass-item" key={e.id}>
-                <label className="pass-check">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(e.id)}
-                    onChange={() => toggle(e.id)}
-                  />
-                  Select
-                </label>
-                <div id={`pass-card-${e.id}`}>
-                  <PassCard employee={e} />
+          <>
+            <div className="pass-grid">
+              {paginatedEmployees.map((e) => (
+                <div className="pass-item" key={e.id}>
+                  <label className="pass-check">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(e.id)}
+                      onChange={() => toggle(e.id)}
+                    />
+                    Select
+                  </label>
+                  <div id={`pass-card-${e.id}`}>
+                    <PassCard employee={e} />
+                  </div>
+                  <div className="muted small center">{e.qrToken}</div>
+                  <button className="btn btn-sm btn-outline mt-1" onClick={() => downloadTemplate(e)}>
+                    Download PNG
+                  </button>
                 </div>
-                <div className="muted small center">{e.qrToken}</div>
-                <button className="btn btn-sm btn-outline mt-1" onClick={() => downloadTemplate(e)}>
-                  Download PNG
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button className="btn btn-sm btn-outline" disabled={page === 1} onClick={() => setPage(page - 1)}>
+                  ← Previous
+                </button>
+                <span className="muted">Page {page} of {totalPages}</span>
+                <button className="btn btn-sm btn-outline" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+                  Next →
                 </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

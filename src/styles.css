@@ -509,14 +509,24 @@ hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
 /* ---------- Pass grid and download ---------- */
 .pass-grid {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 20px;
-  overflow-x: auto;
-  padding-bottom: 10px;
+  justify-content: flex-start;
 }
-.pass-item { display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0; }
+.pass-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .pass-check { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: normal; cursor: pointer; }
 .pass-check input { cursor: pointer; }
+
+/* ---------- Pagination ---------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px;
+  border-top: 1px solid #e5e7eb;
+}
 
 /* ---------- Print page ---------- */
 .print-page { padding: 16px; }
